@@ -206,21 +206,6 @@ Use terms such as "likely", "consistent with", and "possible" when presenting re
 - add richer historical comparison dashboards
 - add authentication and multi-user run management
 
-## Screenshots
-
-Add screenshots for your final report here:
-
-- `docs/screenshots/dashboard-home.png`
-- `docs/screenshots/run-results.png`
-
-## Notes for University Demo
-
-Good demo targets:
-
-- `8.8.8.8`
-- a reachable campus server
-- a VPN-connected endpoint to demonstrate reduced MTU
-
 During the demo, explain that:
 
 - PMTUD depends on DF behavior plus ICMP feedback
