@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Run Results</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+    <main class="layout">
+        <a href="/" class="back-link">Back to dashboard</a>
+        {% if run %}
+        <section class="hero small-hero">
+            <div>
+                <p class="eyebrow">Stored analysis run</p>
+                <h1>{{ run.target }}</h1>
+                <p class="lede">{{ run.notes }}</p>
+            </div>
+            <div class="card metric-stack">
+                <span>Run ID: {{ run.run_id }}</span>
+                <span>Resolved IP: {{ run.target_ip or "n/a" }}</span>
+                <span>Largest payload: {{ run.largest_successful_payload or "n/a" }}</span>
+                <span>Path MTU: {{ run.inferred_path_mtu or "n/a" }}</span>
+                <span>Recommended MTU: {{ run.recommended_mtu or "n/a" }}</span>
+                <span>Recommended MSS: {{ run.recommended_mss or "n/a" }}</span>
+            </div>
+        </section>
+
+        <section class="summary-grid">
+            <article class="card">
+                <h2>Findings</h2>
+                {% for finding in run.findings %}
+                <div class="rec-card">
+                    <strong>{{ finding.likely_issue }} ({{ finding.confidence }})</strong>
+                    <p>{{ finding.explanation }}</p>
+                </div>
+                {% endfor %}
+            </article>
+            <article class="card">
+                <h2>Recommendations</h2>
+                {% for rec in run.recommendations %}
+                <div class="rec-card">
+                    <strong>{{ rec.title }}{% if rec.value %}: {{ rec.value }}{% endif %}</strong>
+                    <p>{{ rec.detail }}</p>
+                </div>
+                {% endfor %}
+                <div class="actions">
+                    <a href="/api/runs/{{ run.run_id }}/export/json">Export JSON</a>
+                    <a href="/api/runs/{{ run.run_id }}/export/csv">Export CSV</a>
+                    <a href="/api/runs/{{ run.run_id }}/summary">Demo Summary</a>
+                </div>
+            </article>
+        </section>
+
+        <section class="chart-grid">
+            <article class="card">
+                <h2>MTU Success by Payload</h2>
+                <div id="mtu-chart" class="chart"></div>
+            </article>
+            <article class="card">
+                <h2>RTT by Payload</h2>
+                <div id="rtt-chart" class="chart"></div>
+            </article>
+        </section>
+
+        <section class="card">
+            <h2>Probe Log</h2>
+            <div class="table-wrap">
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Seq</th>
+                            <th>Payload</th>
+                            <th>MTU</th>
+                            <th>Success</th>
+                            <th>RTT</th>
+                            <th>Error</th>
+                            <th>Detail</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for probe in run.probes %}
+                        <tr>
+                            <td>{{ probe.sequence_no }}</td>
+                            <td>{{ probe.payload_size }}</td>
+                            <td>{{ probe.mtu_estimate }}</td>
+                            <td>{{ probe.success }}</td>
+                            <td>{{ probe.rtt_ms or "n/a" }}</td>
+                            <td>{{ probe.error_type or "none" }}</td>
+                            <td>{{ probe.detail }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </section>
+        {% else %}
+        <section class="card">
+            <h1>Run not found</h1>
+        </section>
+        {% endif %}
+    </main>
+    <script>
+        const chartContext = {{ chart_context|tojson }};
+        if (chartContext.mtuSuccess) {
+            Plotly.newPlot("mtu-chart", [{
+                x: chartContext.mtuSuccess.x,
+                y: chartContext.mtuSuccess.y,
+                mode: "markers+lines",
+                type: "scatter",
+                marker: { color: "#0e7490", size: 10 }
+            }], {
+                margin: { t: 20, l: 45, r: 20, b: 40 },
+                yaxis: { title: "Success", tickvals: [0, 1] },
+                xaxis: { title: "Payload size (bytes)" }
+            }, { responsive: true });
+        }
+        if (chartContext.rttByPayload) {
+            Plotly.newPlot("rtt-chart", [{
+                x: chartContext.rttByPayload.x,
+                y: chartContext.rttByPayload.y,
+                mode: "markers+lines",
+                type: "scatter",
+                marker: { color: "#f97316", size: 10 }
+            }], {
+                margin: { t: 20, l: 45, r: 20, b: 40 },
+                yaxis: { title: "RTT (ms)" },
+                xaxis: { title: "Payload size (bytes)" }
+            }, { responsive: true });
+        }
+    </script>
+</body>
+</html>

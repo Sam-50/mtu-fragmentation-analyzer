@@ -1,0 +1,10 @@
+{
+  "target": "demo.example",
+  "summary": {
+    "inferred_path_mtu": 1428,
+    "recommended_mtu": 1420,
+    "recommended_mss": 1380,
+    "loss_rate": 0.3333,
+    "avg_rtt_ms": 22.8
+  }
+}

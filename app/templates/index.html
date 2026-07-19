@@ -1,0 +1,162 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>MTU Discovery Dashboard</title>
+    <link rel="stylesheet" href="/static/styles.css">
+    <script src="https://cdn.plot.ly/plotly-2.35.2.min.js"></script>
+</head>
+<body>
+    <main class="layout">
+        <section class="hero">
+            <div>
+                <p class="eyebrow">Internetworking with TCP/IP</p>
+                <h1>Intelligent MTU Discovery and IP Fragmentation Mitigation System</h1>
+                <p class="lede">
+                    Local dashboard for Path MTU probing, RTT/loss measurement, TCP symptom heuristics,
+                    and human-readable recommendations that work well in WSL2.
+                </p>
+            </div>
+            <form id="analysis-form" class="card form-card">
+                <h2>Run Analysis</h2>
+                <label>Target host or IP
+                    <input name="target" value="8.8.8.8" required>
+                </label>
+                <label>Payload start
+                    <input name="payload_start" type="number" value="1200" min="576" max="2000">
+                </label>
+                <label>Payload stop
+                    <input name="payload_stop" type="number" value="1472" min="576" max="2000">
+                </label>
+                <label>Payload step
+                    <input name="payload_step" type="number" value="16" min="1" max="256">
+                </label>
+                <label>Probe count
+                    <input name="probe_count" type="number" value="2" min="1" max="10">
+                </label>
+                <label>Timeout (seconds)
+                    <input name="timeout" type="number" value="2" min="0.2" max="10" step="0.1">
+                </label>
+                <button type="submit">Start local analysis</button>
+                <p id="form-status" class="status-line"></p>
+            </form>
+        </section>
+
+        <section class="summary-grid">
+            <article class="card">
+                <h3>Recent Runs</h3>
+                <div class="run-list">
+                    {% if recent_runs %}
+                        {% for run in recent_runs %}
+                        <a href="/runs/{{ run.id }}" class="run-item">
+                            <strong>{{ run.target }}</strong>
+                            <span>MTU {{ run.inferred_path_mtu or "n/a" }} | MSS {{ run.recommended_mss or "n/a" }}</span>
+                        </a>
+                        {% endfor %}
+                    {% else %}
+                        <p>No runs stored yet.</p>
+                    {% endif %}
+                </div>
+            </article>
+            <article class="card">
+                <h3>Latest Result Snapshot</h3>
+                {% if latest_run %}
+                <div class="metric-pills">
+                    <span>Target: {{ latest_run.target }}</span>
+                    <span>Path MTU: {{ latest_run.inferred_path_mtu or "n/a" }}</span>
+                    <span>Recommended MTU: {{ latest_run.recommended_mtu or "n/a" }}</span>
+                    <span>Loss: {{ latest_run.measurement.loss_rate }}</span>
+                </div>
+                <div class="recommendations">
+                    {% for rec in latest_run.recommendations[:4] %}
+                    <div class="rec-card">
+                        <strong>{{ rec.title }}</strong>
+                        <p>{{ rec.detail }}</p>
+                    </div>
+                    {% endfor %}
+                </div>
+                {% else %}
+                <p>Run a measurement to populate charts and recommendations.</p>
+                {% endif %}
+            </article>
+        </section>
+
+        <section class="chart-grid">
+            <article class="card">
+                <h3>MTU Success by Payload</h3>
+                <div id="mtu-chart" class="chart"></div>
+            </article>
+            <article class="card">
+                <h3>RTT by Payload Size</h3>
+                <div id="rtt-chart" class="chart"></div>
+            </article>
+        </section>
+    </main>
+
+    <script>
+        const chartContext = {{ chart_context|tojson }};
+
+        function renderCharts(ctx) {
+            if (ctx.mtuSuccess) {
+                Plotly.newPlot("mtu-chart", [{
+                    x: ctx.mtuSuccess.x,
+                    y: ctx.mtuSuccess.y,
+                    mode: "markers+lines",
+                    type: "scatter",
+                    text: ctx.mtuSuccess.text,
+                    marker: { color: "#0e7490", size: 10 }
+                }], {
+                    margin: { t: 20, l: 45, r: 20, b: 40 },
+                    yaxis: { title: "Success", tickvals: [0, 1] },
+                    xaxis: { title: "Payload size (bytes)" }
+                }, { responsive: true });
+            }
+
+            if (ctx.rttByPayload) {
+                Plotly.newPlot("rtt-chart", [{
+                    x: ctx.rttByPayload.x,
+                    y: ctx.rttByPayload.y,
+                    mode: "markers+lines",
+                    type: "scatter",
+                    marker: { color: "#f97316", size: 10 }
+                }], {
+                    margin: { t: 20, l: 45, r: 20, b: 40 },
+                    yaxis: { title: "RTT (ms)" },
+                    xaxis: { title: "Payload size (bytes)" }
+                }, { responsive: true });
+            }
+        }
+
+        renderCharts(chartContext);
+
+        const form = document.getElementById("analysis-form");
+        const statusLine = document.getElementById("form-status");
+
+        form.addEventListener("submit", async (event) => {
+            event.preventDefault();
+            const formData = new FormData(form);
+            const payload = Object.fromEntries(formData.entries());
+            payload.payload_start = Number(payload.payload_start);
+            payload.payload_stop = Number(payload.payload_stop);
+            payload.payload_step = Number(payload.payload_step);
+            payload.probe_count = Number(payload.probe_count);
+            payload.timeout = Number(payload.timeout);
+
+            statusLine.textContent = "Running analysis...";
+            const response = await fetch("/api/analyze", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
+            });
+            const data = await response.json();
+            if (!response.ok) {
+                statusLine.textContent = data.detail || "Analysis failed.";
+                return;
+            }
+            statusLine.textContent = "Analysis complete. Opening result page...";
+            window.location.href = `/runs/${data.run_id}`;
+        });
+    </script>
+</body>
+</html>

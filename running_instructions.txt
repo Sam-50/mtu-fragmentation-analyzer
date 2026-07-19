@@ -1,0 +1,36 @@
+Use WSL2 Ubuntu for the actual demo run.
+
+From your project root:
+```bash
+cd "D:/Learning/1. University/Kabarak University/Semesters/4.1/COMP 412- Artificial Intelligence/Team Project/The Project/mtu-fragmentation-analyzer"
+```
+
+In WSL, the safer path is the Linux mount path:
+```bash
+cd "/mnt/d/Learning/1. University/Kabarak University/Semesters/4.1/COMP 412- Artificial Intelligence/Team Project/The Project/mtu-fragmentation-analyzer"
+```
+
+Then run:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install --upgrade pip
+pip install -r requirements.txt
+uvicorn app.main:app --reload
+```
+
+Open this in your browser:
+[http://127.0.0.1:8000](http://127.0.0.1:8000)
+
+You can also run tests:
+```bash
+pytest
+```
+
+And a CLI demo run:
+```bash
+python scripts/demo_run.py 8.8.8.8 --payload-start 1200 --payload-stop 1472 --payload-step 16 --probe-count 2
+```
+
+Important: run it inside WSL2 Ubuntu, not normal Windows PowerShell, because the PMTU probing uses Linux `ping` behavior.
