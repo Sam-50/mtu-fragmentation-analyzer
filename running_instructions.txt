@@ -2,12 +2,12 @@ Use WSL2 Ubuntu for the actual demo run.
 
 From your project root:
 ```bash
-cd "D:/Learning/1. University/Kabarak University/Semesters/4.1/COMP 412- Artificial Intelligence/Team Project/The Project/mtu-fragmentation-analyzer"
+cd "D/.../mtu-fragmentation-analyzer"
 ```
 
 In WSL, the safer path is the Linux mount path:
 ```bash
-cd "/mnt/d/Learning/1. University/Kabarak University/Semesters/4.1/COMP 412- Artificial Intelligence/Team Project/The Project/mtu-fragmentation-analyzer"
+cd "/mnt/d/.../mtu-fragmentation-analyzer"
 ```
 
 Then run:
